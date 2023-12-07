@@ -13,12 +13,36 @@ auto findChar(const char c, vector<pair<char, int>> &v) {
 }
 vector<pair<char, int>> foldString(string& s) {
     vector<pair<char, int>> v;
+    vector<pair<char, int>> v2;
+    unordered_map<char, int> m;
     int n = s.length();
-    for(int i = 0; i < n;i++) {
-        auto it = findChar(s[i], v);
-        if(it != v.end()) it->second++;
-        else v.push_back(pair<char, int>(s[i], 1)); 
-    }    
+    // for(int i = 0; i < n;i++) {
+    //     auto it = findChar(s[i], v);
+    //     if(it != v.end()) it->second++;
+    //     else v.push_back(pair<char, int>(s[i], 1)); 
+    // }   
+    for (int i = 0; i < n; i++) m[s[i]]++;
+    for (auto it : m) v.push_back(it); 
+    for (auto it : v) cout << it.first << " Fre :" << it.second << endl;
+    unordered_map<char, int> m2;
+    for (auto it : v) {
+        int gap = it.second;
+        if(it.first <= 'Z') it.first = (it.first + gap - 65) % 26 + 65;
+        else it.first = (it.first + gap - 97) % 26 + 97;
+        m2[it.first] += it.second;
+    }
+    cout << v.size() << endl;
+    cout << endl;
+    for (auto it : m2) cout << it.first << " Fre :" << it.second << endl;
+    for (auto it : m2) v2.push_back(it);
+    cout << m2.size() << endl;
+    sort(v2.begin(), v2.end(), [](const auto &a,const auto &b) {
+        if(a.second == b.second) {
+            if(b.first <= 'Z' && a.first >= 'a') return true;
+        }
+        return a.second < b.second;       
+    });
+    for (auto it : v2) cout << it.first << " Fre :" << it.second << endl;
     return v;
 }
 vector<pair<char,int>> SortCodeCeasar(vector<pair<char, int>> &v) {
@@ -81,7 +105,7 @@ class HuffTree {
             else { delete vHuff[i]; vHuff[i] = nullptr; vHuff.pop_back();}
         }
     }
-    bool rotateLeft(HuffTree *&p) {
+    bool rotateLeft(HuffTree *&p, int &nRotate) {
         HuffTree *t = p->right;
         p->right = t->left;
         t->left = p;
@@ -90,9 +114,10 @@ class HuffTree {
             deleteHuffTree();
             return true;
         }
+        if(++nRotate == 3) return true;
         return false;
     }
-    bool rotateRight(HuffTree *&p) {
+    bool rotateRight(HuffTree *&p, int &nRotate) {
         HuffTree *t = p->left;
         p->left = t->right;
         t->right = p;
@@ -101,40 +126,47 @@ class HuffTree {
             deleteHuffTree();
             return true;
         }
+        if(++nRotate == 3) return true;
         return false;
     }
     int getLevel(HuffTree *p) {
         if(!p) return 0;
         return 1 + max(getLevel(p->left), getLevel(p->right));
     }
-    void updateBalance(HuffTree *&p, bool &checkRoot) {
+    void updateBalance(HuffTree *&p, bool &checkRoot, int &nRotate) {
         int levelLeft = getLevel(p->left);
         int levelRight = getLevel(p->right);
         if(abs(levelLeft - levelRight) > 1) {
             if(levelLeft > levelRight) {
                 HuffTree *t = p->left;
-                if(getLevel(t->left) >= getLevel(t->right)) rotateRight(p);
+                if(getLevel(t->left) >= getLevel(t->right)) rotateRight(p, nRotate);
                 else {
-                    if(rotateLeft(p->left)) {checkRoot = true; return;}
-                    if(rotateRight(p)) {checkRoot = true; return;}
+                    if(rotateLeft(p->left, nRotate)) {checkRoot = true; return;}
+                    if(rotateRight(p, nRotate)) {checkRoot = true; return;}
                 }
             }
             else {
                 HuffTree *t = p->right;
-                if(getLevel(t->right) >= getLevel(t->left)) rotateLeft(p);
+                if(getLevel(t->right) >= getLevel(t->left)) rotateLeft(p, nRotate);
                 else {
-                    if(rotateRight(p->right)) {checkRoot = true; return;}
-                    if(rotateLeft(p)) {checkRoot = true; return;}
+                    if(rotateRight(p->right, nRotate)) {checkRoot = true; return;}
+                    if(rotateLeft(p, nRotate)) {checkRoot = true; return;}
                 }
             }
         }
-        if(p->left) updateBalance(p->left, checkRoot);
-        if(p->right) updateBalance(p->right, checkRoot); 
+        if(p->left) updateBalance(p->left, checkRoot, nRotate);
+        if(p->right) updateBalance(p->right, checkRoot, nRotate); 
     }
     bool checkBalance(HuffTree *p) {
         if(!p) return true;
         if(abs(getLevel(p->left) - getLevel(p->right)) > 1) return false;
         return checkBalance(p->left) && checkBalance(p->right); 
+    }
+    void rotatePreOrder(HuffTree *&p) {
+        if(!p) return;
+        //while(!checkBalance(root)) updateBalance(p, checkRoot);
+        rotatePreOrder(p->left);
+        rotatePreOrder(p->right);
     }
     bool createHuffTree(vector<pair<char, int>>& v) { //! trong qua trinh xoay cay neu root la char ->deleteTree
         for(auto it : v) vHuff.push_back(new HuffTree(it.first, it.second, true));
@@ -144,7 +176,8 @@ class HuffTree {
             HuffTree *c  = new HuffTree(a, b);
             bool checkRoot = false;
             root = c;
-            while(!checkBalance(c)) updateBalance(c, checkRoot);
+            rotatePreOrder(root);
+            //while(!checkBalance(root)) updateBalance(root, checkRoot);
             if(checkRoot) return false;
             for(auto i = 0; i < vHuff.size(); i++) {
                 if(vHuff[i]->freq <= c->freq) {
@@ -435,7 +468,7 @@ class Sukuna{
         while(idx) {
             int idxParent = (idx - 1) / 2;
             if(heap[idxParent]->quantity < heap[idx]->quantity) return;
-            else if(heap[idxParent]->quantity == heap[idx]->quantity) if(cmpOrder(heap[idx], heap[idxParent])) return;
+            else if(heap[idxParent]->quantity == heap[idx]->quantity) if(cmpOrder(heap[idxParent], heap[idx])) return;
             swap(heap[idxParent], heap[idx]);
             idx = idxParent;
         }
@@ -448,7 +481,7 @@ class Sukuna{
                 if(heap[cIdx]->quantity > heap[cIdx + 1]->quantity) cIdx++;
             }
             if(heap[cIdx]->quantity > heap[idx]->quantity) return; //! if equal then compare order insert
-            else if(heap[cIdx]->quantity == heap[idx]->quantity) if(cmpOrder(heap[cIdx], heap[idx])) return;
+            else if(heap[cIdx]->quantity == heap[idx]->quantity) if(cmpOrder(heap[idx], heap[cIdx])) return;
             swap(heap[cIdx], heap[idx]);
             idx  = cIdx;   
         }
@@ -478,33 +511,39 @@ class Sukuna{
         for (int i = 0; i < minHeap.size(); i++) heapUp(minHeap, i);
     }
 
-    Area *findMinLast() {
-        Area *minlast = minHeap[0];
-        for (Area * it : minHeap) {
-            if(it->quantity < minlast->quantity) minlast = it;
-            else if(it->quantity == minlast->quantity) {
-                for (Area *i : orderAreas) {
-                    if(i == it) {
-                        minlast = it;
-                        break;
-                    }
-                }
-            }
+    void *findMinLast(vector<Area*> &a, int m) {
+        // Area *minlast = minHeap[0];
+        // for (Area * it : minHeap) {
+        //     if(it->quantity < minlast->quantity) minlast = it;
+        //     else if(it->quantity == minlast->quantity) {
+        //         for (Area *i : orderAreas) {
+        //             if(i == it) {
+        //                 minlast = it;
+        //                 break;
+        //             }
+        //         }
+        //     }
+        // }
+        //return minlast;
+        int i = 1;
+        a.push_back(minHeap[0]);
+        while(m-- && i < minHeap.size()) {
+            if(minHeap[i] > minHeap[i + 1]) i++;
+            a.push_back(minHeap[i]); i++; 
         }
-        return minlast;
     }
-    void deleteCus(int num) {
+    void deleteCus(int num) { //!Tìm Num Khu Vực Thỏa Mãn, Xóa từng area and re_heap từng area 
         if(!minHeap.size()) return;
+        vector<Area *> delAreas;
+        findMinLast(delAreas, num);
         int m = num;
-        while(m--) {
-            if(!minHeap.size()) return;
-            Area *minlast = findMinLast();
-            minlast->deleteCus(num);
-            if(!minlast->quantity) {
-                crtHeap[minlast->label] = nullptr;
-                deleteOrder(minlast);
+        for (Area *&it : delAreas) {
+            it->deleteCus(num);
+            if(!it->quantity) {
+                crtHeap[it->label] = nullptr;
+                deleteOrder(it);
                 int position = 0;
-                for (int i = 0; i< minHeap.size(); i++) if(minHeap[i] == minlast) position = i;
+                for (int i = 0; i< minHeap.size(); i++) if(minHeap[i] == it) position = i;
                 swap(minHeap[position], minHeap.back());
                 Area *del = minHeap.back();
                 minHeap.pop_back();
@@ -513,10 +552,10 @@ class Sukuna{
                 heapDown(minHeap, position, minHeap.size());
             }
             else {
-                deleteOrder(minlast);
-                orderAreas.push_back(minlast);
+                deleteOrder(it);
+                orderAreas.push_back(it);
                 int position = 0;
-                for (int i = 0; i< minHeap.size(); i++) if(minHeap[i] == minlast) position = i;
+                for (int i = 0; i< minHeap.size(); i++) if(minHeap[i] == it) position = i;
                 heapUp(minHeap, position);
             }
         }
