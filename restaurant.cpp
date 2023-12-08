@@ -7,23 +7,14 @@ using namespace std;
 int MAXSIZE = 0;
 
 //----------------------------------------------------------------
-auto findChar(const char c, vector<pair<char, int>> &v) {
-    for (auto it = v.begin(); it != v.end(); ++it) if(it->first == c) return it;
-    return v.end();
-}
 vector<pair<char, int>> foldString(string& s) {
     vector<pair<char, int>> v;
     vector<pair<char, int>> v2;
     unordered_map<char, int> m;
     int n = s.length();
-    // for(int i = 0; i < n;i++) {
-    //     auto it = findChar(s[i], v);
-    //     if(it != v.end()) it->second++;
-    //     else v.push_back(pair<char, int>(s[i], 1)); 
-    // }   
     for (int i = 0; i < n; i++) m[s[i]]++;
     for (auto it : m) v.push_back(it); 
-    for (auto it : v) cout << it.first << " Fre :" << it.second << endl;
+    //for (auto it : v) cout << it.first << " Fre :" << it.second << endl;
     unordered_map<char, int> m2;
     for (auto it : v) {
         int gap = it.second;
@@ -33,36 +24,18 @@ vector<pair<char, int>> foldString(string& s) {
     }
     cout << v.size() << endl;
     cout << endl;
-    for (auto it : m2) cout << it.first << " Fre :" << it.second << endl;
+    //for (auto it : m2) cout << it.first << " Fre :" << it.second << endl;
     for (auto it : m2) v2.push_back(it);
     cout << m2.size() << endl;
     sort(v2.begin(), v2.end(), [](const auto &a,const auto &b) {
-        if(a.second == b.second) {
-            if(b.first <= 'Z' && a.first >= 'a') return true;
-        }
-        return a.second < b.second;       
+		if(a.second == b.second) {
+			if(a.first <= 'Z' && b.first >= 'a') return true;
+			else if( a.first < b.first ) return true;
+		}
+		return a.second > b.second;    
     });
-    for (auto it : v2) cout << it.first << " Fre :" << it.second << endl;
+    //for (auto it : v2) cout << it.first << " Fre :" << it.second << endl;
     return v;
-}
-vector<pair<char,int>> SortCodeCeasar(vector<pair<char, int>> &v) {
-    string rel = "";
-    vector<pair<char, int>> res;
-    for (auto& it : v) {
-        int gap = it.second;
-        if(it.first <= 'Z') it.first = (it.first + gap - 65) % 26 + 65;
-        else it.first = (it.first + gap - 97) % 26 + 97;
-        auto find = findChar(it.first, res);
-        if(find != res.end()) find->second += it.second;
-        else res.push_back(it);
-    }
-    sort(res.begin(), res.end(), [](const auto &a,const auto &b) {
-        if(a.second == b.second) {
-            if(a.first <= 'Z' && b.first >= 'a') return true;
-        }
-        return a.second < b.second;       
-    });
-    return res;
 }
 // Huffman tree node abstract base class
 class HuffTree {
@@ -511,20 +484,7 @@ class Sukuna{
         for (int i = 0; i < minHeap.size(); i++) heapUp(minHeap, i);
     }
 
-    void *findMinLast(vector<Area*> &a, int m) {
-        // Area *minlast = minHeap[0];
-        // for (Area * it : minHeap) {
-        //     if(it->quantity < minlast->quantity) minlast = it;
-        //     else if(it->quantity == minlast->quantity) {
-        //         for (Area *i : orderAreas) {
-        //             if(i == it) {
-        //                 minlast = it;
-        //                 break;
-        //             }
-        //         }
-        //     }
-        // }
-        //return minlast;
+    void findMinLast(vector<Area*> &a, int m) {
         int i = 1;
         a.push_back(minHeap[0]);
         while(m-- && i < minHeap.size()) {
@@ -534,22 +494,21 @@ class Sukuna{
     }
     void deleteCus(int num) { //!Tìm Num Khu Vực Thỏa Mãn, Xóa từng area and re_heap từng area 
         if(!minHeap.size()) return;
-        vector<Area *> delAreas;
-        findMinLast(delAreas, num);
         int m = num;
-        for (Area *&it : delAreas) {
+        for (Area *&it : minHeap) {
+            if(m--) break;
             it->deleteCus(num);
             if(!it->quantity) {
                 crtHeap[it->label] = nullptr;
                 deleteOrder(it);
                 int position = 0;
-                for (int i = 0; i< minHeap.size(); i++) if(minHeap[i] == it) position = i;
-                swap(minHeap[position], minHeap.back());
+                //for (int i = 0; i< minHeap.size(); i++) if(minHeap[i] == it) position = i;
+                swap(minHeap[0], minHeap.back());
                 Area *del = minHeap.back();
                 minHeap.pop_back();
                 delete del;
                 cout << "SIZE : " << minHeap.size() << endl;
-                heapDown(minHeap, position, minHeap.size());
+                heapDown(minHeap, 0, minHeap.size());
             }
             else {
                 deleteOrder(it);
@@ -588,7 +547,7 @@ Gojo *gojo;
 void LAPSE(string name) {
 	vector<pair<char, int>> v = foldString(name);
 	if(v.size() < 3) return;
-	v = SortCodeCeasar(v);
+	//v = SortCodeCeasar(v);
     reverse(v.begin(), v.end());
 	HuffTree *huff = new HuffTree();
 	if(!huff->createHuffTree(v)) { delete huff; return;}
